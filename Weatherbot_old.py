@@ -53,6 +53,10 @@ def pick_emoji(condition_text, chance_of_rain):
 
 
 def analyze_hourly(hourly_data):
+    """
+    Find the best time to head home before heavy rain.
+    Returns a warning string or None.
+    """
     rain_windows = []
     current_window = None
 
@@ -63,13 +67,12 @@ def analyze_hourly(hourly_data):
         rain_chance = hour["chance_of_rain"]
         precip_mm = hour["precip_mm"]
 
-        if (rain_chance >= HEAVY_RAIN_THRESHOLD or precip_mm >= 2.0) and 7 <= hour_num <= 23:
+        if rain_chance >= HEAVY_RAIN_THRESHOLD or precip_mm >= 2.0:
             if current_window is None:
-                current_window = {"start": hour_num, "end": hour_num, "total_chance": rain_chance, "count": 1}
+                current_window = {"start": hour_num, "end": hour_num, "max_chance": rain_chance}
             else:
                 current_window["end"] = hour_num
-                current_window["total_chance"] += rain_chance  # add up all percentages
-                current_window["count"] += 1                   # track how many hours
+                current_window["max_chance"] = max(current_window["max_chance"], rain_chance)
         else:
             if current_window is not None:
                 rain_windows.append(current_window)
@@ -77,10 +80,6 @@ def analyze_hourly(hourly_data):
 
     if current_window:
         rain_windows.append(current_window)
-
-    # calculate average for each window after the loop
-    for window in rain_windows:
-        window["avg_chance"] = round(window["total_chance"] / window["count"])
 
     return rain_windows
 
@@ -137,11 +136,11 @@ def build_discord_payload(data):
     for window in rain_windows:
         start = format_time(window["start"])
         end = format_time(window["end"])
-        avg_c = window["avg_chance"]
+        max_c = window["max_chance"]
         if window["start"] == window["end"]:
-            timing_lines.append(f"• **{start}** — {avg_c}% chance of heavy rain")
+            timing_lines.append(f"• **{start}** — {max_c}% chance of heavy rain")
         else:
-            timing_lines.append(f"• **{start} – {end}** — up to {avg_c}% heavy rain")
+            timing_lines.append(f"• **{start} – {end}** — up to {max_c}% heavy rain")
         # Suggest going home before it
         if window["start"] >= 15:  # only suggest for afternoon/evening windows
             safe_hour = max(window["start"] - 1, 0)
@@ -188,7 +187,7 @@ def build_discord_payload(data):
                     f"`{dt.strftime('%I %p').lstrip('0'):>5}` {bar} {chance}%"
                 )
 
-    # ── Build embed Discord ───────────────────────────────────────────────────────────
+    # ── Build embed ───────────────────────────────────────────────────────────
     description = "\n".join(tips)
 
     fields = [
