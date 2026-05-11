@@ -63,14 +63,20 @@ def analyze_hourly(hourly_data):
         rain_chance = hour["chance_of_rain"]
         precip_mm = hour["precip_mm"]
 
-        # If it's heavy rain and during "active" hours
-        if (rain_chance >= HEAVY_RAIN_THRESHOLD or precip_mm >= 2.0) and 7 <= hour_num <= 23:
-            if current_window is None:
+        is_heavy_rain = (rain_chance >= HEAVY_RAIN_THRESHOLD or precip_mm >= 2.0)
+        is_active_hour = 7 <= hour_num <= 23
+
+        if is_heavy_rain and is_active_hour:
+            if current_window is None or (hour_num != (hourly_data[hourly_data.index(hour)-1]["time"].split()[1][:2] + 1) % 24):
+                if current_window:
+                    current_window["avg_chance"] = round(current_window["total_chance"] / current_window["count"])
+                    rain_windows.append(current_window)
                 current_window = {"start": hour_num, "end": hour_num, "total_chance": rain_chance, "count": 1}
             else:
                 current_window["end"] = hour_num
                 current_window["total_chance"] += rain_chance
                 current_window["count"] += 1
+
         else:
             if current_window is not None:
                 current_window["avg_chance"] = round(current_window["total_chance"] / current_window["count"])
