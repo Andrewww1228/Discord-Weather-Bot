@@ -282,6 +282,13 @@ def main():
 
     print(f"Fetching weather for {LOCATION}...")
     data = get_weather()
+
+    tomorrow = data["forecast"]["forecastday"][1]
+    for hour in tomorrow["hour"]:
+        from datetime import datetime
+        dt = datetime.strptime(hour["time"], "%Y-%m-%d %H:%M")
+        print(f"{dt.strftime('%I %p')} → {hour['chance_of_rain']}%")
+        
     payload = build_discord_payload(data)
     send_to_discord(payload)
 
