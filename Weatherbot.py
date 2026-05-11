@@ -11,7 +11,7 @@ LOCATION = os.getenv("LOCATION", "Kuala Lumpur")  # default location to KL
 
 ## Thresholds for recommendations so like it uses to calculate the recommendation to bring an umbrella or not, what time you should head home to avoid heavy rain, etc. You can adjust these based on your preferences or local weather patterns.
 RAIN_CHANCE_THRESHOLD = 40      # % chance of rain to trigger umbrella warning
-HEAVY_RAIN_THRESHOLD = 55       # % chance of rain considered "heavy rain risk"
+HEAVY_RAIN_THRESHOLD = 70       # % chance of rain considered "heavy rain risk"
 HOT_TEMP_THRESHOLD = 33         # °C — recommend sunglasses above this
 UV_HIGH_THRESHOLD = 6           # UV index considered high
 AQI_WARNING_THRESHOLD = 3         # AQI — recommend mask above this
@@ -71,6 +71,7 @@ def analyze_hourly(hourly_data):
                 current_window["end"] = hour_num
                 current_window["total_chance"] += rain_chance
                 current_window["count"] += 1
+                
         else:
             if current_window is not None:
                 current_window["avg_chance"] = round(current_window["total_chance"] / current_window["count"])
