@@ -22,7 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run weather script
-        run: python Weatherbot.py
+        run: python WeatherbotOM.py
         env:
           WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
