@@ -179,16 +179,16 @@ def build_discord_payload(w_data, a_data, final_loc):
         },
 
         {
-            "name": "💨 Wind Max", 
-            "value": f"{daily['wind_speed_10m_max']} km/h", 
+            "name": "🧪 Air Quality", 
+            "value": f"{aqi_emoji} **{aqi_status}**\nAQI: {aqi_val}\nCO: {co_val:.0f} μg/m³", 
             "inline": True
         },
 
         {
-            "name": "🧪 Air Quality", 
-            "value": f"{aqi_emoji} **{aqi_status}**\nAQI: {aqi_val}\nCO: {co_val:.0f} μg/m³", 
+            "name": "💨 Wind Max", 
+            "value": f"{daily['wind_speed_10m_max']} km/h", 
             "inline": True
-        }
+        },
     ]
 
     if timing_lines:
