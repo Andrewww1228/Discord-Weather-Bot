@@ -10,11 +10,11 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 LOCATION = os.getenv("LOCATION", "Kuala Lumpur")
 
 # ── THRESHOLDS ─────────────────────────────────────────────────────────────
-RAIN_CHANCE_THRESHOLD = 40      
-HEAVY_RAIN_THRESHOLD = 70       
-HOT_TEMP_THRESHOLD = 33         
-UV_HIGH_THRESHOLD = 6           
-AQI_WARNING_THRESHOLD = 101     
+RAIN_CHANCE_THRESHOLD = 40      # % chance of rain to trigger umbrella warning
+HEAVY_RAIN_THRESHOLD = 70       # % chance of rain considered "heavy rain risk"
+HOT_TEMP_THRESHOLD = 33         # °C — recommend sunglasses above this
+UV_HIGH_THRESHOLD = 6           # UV index considered high
+AQI_WARNING_THRESHOLD = 101     # AQI — recommend mask above this
 CO_HIGH_THRESHOLD = 4400        # μg/m³
 WIND_SPEED_THRESHOLD = 30       # km/h for a warning
 
