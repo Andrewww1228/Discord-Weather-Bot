@@ -146,7 +146,7 @@ def build_discord_payload(w_data, a_data, final_loc):
     aqi_status, aqi_emoji = get_aqi_info(aqi_val)
     
     if aqi_val >= AQI_WARNING_THRESHOLD:
-        tips.append(f"😷 AQI is **{aqi_val}**BB please consider wearing a mask ❤️🥰.")
+        tips.append(f"😷 AQI is **{aqi_val}** — BB please consider wearing a mask ❤️🥰.")
     
     if co_val >= CO_HIGH_THRESHOLD:
         tips.append("🚨 **High CO levels** — BB please stay indoors if possible 🥰.")
