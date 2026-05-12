@@ -5,7 +5,7 @@ A lightweight, highly accurate Python automation script that sends localized wea
 ---
 
 ## 📸 Preview | 预览
-<p align="left">
+<p align="center">
   <img width="418" height="458" alt="Weather" src="https://github.com/user-attachments/assets/6daf3628-bd2e-47a3-b742-652ecb4d15cd" />
 </p>
 
