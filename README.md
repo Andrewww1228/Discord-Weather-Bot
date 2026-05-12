@@ -16,7 +16,7 @@ A lightweight, highly accurate Python automation script that sends localized wea
 * **High-Accuracy Forecasts:** Uses high-resolution models (**ECMWF/ICON**) to fix the "100% rain" inaccuracies common in tropical climates.
 * **Commute Intelligence:** Automatically calculates if you should leave work early (around 3 PM - 6 PM) based on predicted heavy rain windows.
 * **Air Quality Monitoring:** Tracks US-EPA AQI and Carbon Monoxide (CO) levels with health-based thresholds.
-* **Zero Key Setup:** Uses Open-Meteo's open-data API—no more managing API keys for weather data.
+* **Zero Key Setup:** Uses Open-Meteo's open-data API, no more managing API keys for weather data.
 * **Visual Reports:** Includes a rain probability bar chart (10 AM - 10 PM) for quick visual scanning.
 
 ---
