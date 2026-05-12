@@ -5,44 +5,40 @@ from dotenv import load_dotenv
 
 load_dotenv(override=False)
 
-
+# ── CONFIGURATION ──────────────────────────────────────────────────────────
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 LOCATION = os.getenv("LOCATION", "Kuala Lumpur")
 
-## Thresholds for recommendations so like it uses to calculate the recommendation to bring an umbrella or not, what time you should head home to avoid heavy rain, etc. You can adjust these based on your preferences or local weather patterns.
-RAIN_CHANCE_THRESHOLD = 40      # %
-HEAVY_RAIN_THRESHOLD = 70       # %
-HOT_TEMP_THRESHOLD = 33         # °C
-UV_HIGH_THRESHOLD = 6           # Index
-AQI_WARNING_THRESHOLD = 101     # US-EPA (101+ is Unhealthy for Sensitive Groups)
+# ── THRESHOLDS ─────────────────────────────────────────────────────────────
+RAIN_CHANCE_THRESHOLD = 40      
+HEAVY_RAIN_THRESHOLD = 70       
+HOT_TEMP_THRESHOLD = 33         
+UV_HIGH_THRESHOLD = 6           
+AQI_WARNING_THRESHOLD = 101     
 CO_HIGH_THRESHOLD = 4400        # μg/m³
+WIND_SPEED_THRESHOLD = 30       # km/h for a warning
 
 def get_coordinates():
-    """Uses Open-Meteo's Geocoding API to find Lat/Long."""
     url = "https://geocoding-api.open-meteo.com/v1/search"
     params = {"name": LOCATION, "count": 1, "language": "en", "format": "json"}
     response = requests.get(url, params=params, timeout=10)
     response.raise_for_status()
     data = response.json()
-    
     if not data.get("results"):
-        raise ValueError(f"Location '{LOCATION}' not found by Open-Meteo.")
-    
+        raise ValueError(f"Location '{LOCATION}' not found.")
     result = data["results"][0]
     return result["latitude"], result["longitude"], result.get("name", LOCATION)
 
 def get_weather_data(lat, lon):
-    """Fetches Weather and Air Quality data from Open-Meteo."""
-    # Forecast URL (Weather, UV, Precipitation)
+    # Forecast URL (Added wind_speed_10m)
     w_url = "https://api.open-meteo.com/v1/forecast"
     w_params = {
         "latitude": lat, "longitude": lon,
-        "hourly": "temperature_2m,precipitation_probability,precipitation,uv_index",
-        "daily": "temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum",
+        "hourly": "temperature_2m,precipitation_probability,precipitation,uv_index,wind_speed_10m",
+        "daily": "temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max",
         "timezone": "auto", "forecast_days": 2
     }
     
-    # Air Quality URL (AQI, CO, PM2.5)
     a_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
     a_params = {
         "latitude": lat, "longitude": lon,
@@ -59,10 +55,8 @@ def format_time_str(iso_str):
     return dt.strftime("%I:%M %p").lstrip("0")
 
 def analyze_rain_windows(hourly_w):
-    """Identifies blocks of heavy rain for tomorrow (indices 24-47)."""
     windows = []
     current = None
-    
     for i in range(24, 48):
         prob = hourly_w["precipitation_probability"][i]
         precip = hourly_w["precipitation"][i]
@@ -71,7 +65,7 @@ def analyze_rain_windows(hourly_w):
 
         if (prob >= HEAVY_RAIN_THRESHOLD or precip >= 1.5) and 7 <= hour_int <= 23:
             if current is None:
-                current = {"start": time_val, "end": time_val, "probs": [prob]}
+                current = {"start": time_val, "end": time_val, "probs": [prob], "start_hour": hour_int}
             else:
                 current["end"] = time_val
                 current["probs"].append(prob)
@@ -83,17 +77,15 @@ def analyze_rain_windows(hourly_w):
     return windows
 
 def build_discord_payload(w_data, a_data, final_loc):
-    # Tomorrow is Index 1 in daily arrays
     daily = {k: v[1] for k, v in w_data["daily"].items()}
     hourly_w = w_data["hourly"]
     hourly_a = a_data["hourly"]
-    
     date_str = datetime.fromisoformat(daily["time"]).strftime("%A, %d %b %Y")
     
     tips = []
     color = 0x57F287
 
-    # Logic & Alerts
+    # ── Logic & Alerts ──
     if daily["precipitation_probability_max"] >= RAIN_CHANCE_THRESHOLD:
         tips.append("🌂 **Bring an umbrella** — rain is likely.")
         color = 0x5865F2
@@ -104,7 +96,10 @@ def build_discord_payload(w_data, a_data, final_loc):
     if daily["uv_index_max"] >= UV_HIGH_THRESHOLD:
         tips.append(f"🧴 UV Index is **{daily['uv_index_max']}** — wear sunscreen.")
 
-    # Rain Analysis
+    if daily["wind_speed_10m_max"] >= WIND_SPEED_THRESHOLD:
+        tips.append(f"💨 **Windy day** — gusts up to {daily['wind_speed_10m_max']} km/h.")
+
+    # ── Rain Timing & Work Schedule (Ends at 6 PM) ──
     rain_windows = analyze_rain_windows(hourly_w)
     timing_lines = []
     suggested_exit = False
@@ -114,19 +109,25 @@ def build_discord_payload(w_data, a_data, final_loc):
         e_time = format_time_str(win["end"])
         timing_lines.append(f"• {'At' if s_time == e_time else f'Between {s_time} and'} **{e_time}**: Heavy rain ({win['avg']}% avg)")
         
-        start_hour = datetime.fromisoformat(win["start"]).hour
-        if 15 <= start_hour <= 20 and not suggested_exit:
-            tips.append(f"🚗 **Head home by {format_time_str(win['start'].replace(win['start'][-5:], f'{start_hour-1:02d}:00'))}** to avoid becoming 落汤鸡!")
+        # Logic: If heavy rain starts between 3 PM (15) and 6 PM (18)
+        if 15 <= win["start_hour"] <= 18 and not suggested_exit:
+            safe_hour_int = win["start_hour"] - 1
+            # Create a readable time for the suggestion
+            safe_time = f"{safe_hour_int - 12 if safe_hour_int > 12 else safe_hour_int}:00 PM"
+            tips.append(f"🚗 **Head home by {safe_time}** to avoid becoming 落汤鸡 during your commute!")
             suggested_exit = True
 
-    # AQI Data (Tomorrow at Noon = Index 36)
+    # ── AQI & CO Data (Noon = Index 36) ──
     aqi_val = hourly_a["us_aqi"][36] 
     co_val = hourly_a["carbon_monoxide"][36]
-
+    
     if aqi_val >= AQI_WARNING_THRESHOLD:
         tips.append(f"😷 AQI is **{aqi_val}** — consider a mask outside.")
+    
+    if co_val >= CO_HIGH_THRESHOLD:
+        tips.append("🚨 **High CO levels** — avoid heavy traffic areas and stay indoors.")
 
-    # Chart (10 AM to 10 PM)
+    # ── Hourly Chart ──
     chart = []
     for i in range(34, 47): 
         p = hourly_w["precipitation_probability"][i]
@@ -138,7 +139,8 @@ def build_discord_payload(w_data, a_data, final_loc):
         {"name": "🌡️ Temp", "value": f"{daily['temperature_2m_min']}°C – {daily['temperature_2m_max']}°C", "inline": True},
         {"name": "🌧️ Rain", "value": f"{daily['precipitation_probability_max']}% ({daily['precipitation_sum']}mm)", "inline": True},
         {"name": "☀️ UV Max", "value": str(daily["uv_index_max"]), "inline": True},
-        {"name": "💨 AQI", "value": f"{aqi_val} (US-EPA)", "inline": True},
+        {"name": "💨 Wind Max", "value": f"{daily['wind_speed_10m_max']} km/h", "inline": True},
+        {"name": "🧪 AQI & CO", "value": f"AQI: {aqi_val} (US-EPA)\nCO: {co_val:.0f} μg/m³", "inline": True},
     ]
 
     if timing_lines:
@@ -160,17 +162,11 @@ def build_discord_payload(w_data, a_data, final_loc):
 
 def main():
     try:
-        print(f"Locating {LOCATION}...")
         lat, lon, final_name = get_coordinates()
-        
-        print(f"Fetching Open-Meteo data for {final_name}...")
         weather, aqi = get_weather_data(lat, lon)
-        
         payload = build_discord_payload(weather, aqi, final_name)
-        
-        res = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
-        res.raise_for_status()
-        print(f"✅ Success! Notification sent for {final_name}.")
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15).raise_for_status()
+        print(f"✅ Success! Notification sent.")
     except Exception as e:
         print(f"❌ Error: {e}")
 
