@@ -15,8 +15,27 @@ HEAVY_RAIN_THRESHOLD = 70       # % chance of rain considered "heavy rain risk"
 HOT_TEMP_THRESHOLD = 33         # °C — recommend sunglasses above this
 UV_HIGH_THRESHOLD = 6           # UV index considered high
 AQI_WARNING_THRESHOLD = 101     # AQI — recommend mask above this
-CO_HIGH_THRESHOLD = 4400        # μg/m³
+CO_HIGH_THRESHOLD = 4400        # μg/m³ -CO level considered high (US EPA standard)
 WIND_SPEED_THRESHOLD = 30       # km/h for a warning
+
+# ── AQI LABELS ──
+aqi_labels = {
+    1: ("Good", "🟢"),
+    2: ("Moderate", "🟡"),
+    3: ("Unhealthy for sensitive groups", "🟠"),
+    4: ("Unhealthy", "🔴"),
+    5: ("Very Unhealthy", "🟣"),
+    6: ("Hazardous", "⚫"),
+}
+
+def get_aqi_info(aqi_value):
+    """Maps raw AQI number to the 1-6 label system"""
+    if aqi_value <= 50: return aqi_labels[1]
+    if aqi_value <= 100: return aqi_labels[2]
+    if aqi_value <= 150: return aqi_labels[3]
+    if aqi_value <= 200: return aqi_labels[4]
+    if aqi_value <= 300: return aqi_labels[5]
+    return aqi_labels[6]
 
 def get_coordinates():
     url = "https://geocoding-api.open-meteo.com/v1/search"
@@ -114,18 +133,23 @@ def build_discord_payload(w_data, a_data, final_loc):
             safe_hour_int = win["start_hour"] - 1
             # Create a readable time for the suggestion
             safe_time = f"{safe_hour_int - 12 if safe_hour_int > 12 else safe_hour_int}:00 PM"
-            tips.append(f"🚗 **Head home by {safe_time}** to avoid becoming 落汤鸡 during your commute!")
+            tips.append(f"🚗 **BB🥰! Head home by {safe_time}** to avoid becoming 落汤鸡 during your commute!")
             suggested_exit = True
 
-    # ── AQI & CO Data (Noon = Index 36) ──
+
+
+    # ── AQI & CO (Mapping the labels) ──
     aqi_val = hourly_a["us_aqi"][36] 
     co_val = hourly_a["carbon_monoxide"][36]
     
+    # Use the mapping function to get the status and emoji
+    aqi_status, aqi_emoji = get_aqi_info(aqi_val)
+    
     if aqi_val >= AQI_WARNING_THRESHOLD:
-        tips.append(f"😷 AQI is **{aqi_val}** — consider a mask outside.")
+        tips.append(f"😷 AQI is **{aqi_val}** ({aqi_status}) — BB please consider wearing a mask ❤️🥰.")
     
     if co_val >= CO_HIGH_THRESHOLD:
-        tips.append("🚨 **High CO levels** — avoid heavy traffic areas and stay indoors.")
+        tips.append("🚨 **High CO levels** — BB please stay indoors if possible 🥰.")
 
     # ── Hourly Chart ──
     chart = []
@@ -136,11 +160,35 @@ def build_discord_payload(w_data, a_data, final_loc):
             chart.append(f"`{format_time_str(hourly_w['time'][i]):>8}` {bar} {p}%")
 
     fields = [
-        {"name": "🌡️ Temp", "value": f"{daily['temperature_2m_min']}°C – {daily['temperature_2m_max']}°C", "inline": True},
-        {"name": "🌧️ Rain", "value": f"{daily['precipitation_probability_max']}% ({daily['precipitation_sum']}mm)", "inline": True},
-        {"name": "☀️ UV Max", "value": str(daily["uv_index_max"]), "inline": True},
-        {"name": "💨 Wind Max", "value": f"{daily['wind_speed_10m_max']} km/h", "inline": True},
-        {"name": "🧪 AQI & CO", "value": f"AQI: {aqi_val} (US-EPA)\nCO: {co_val:.0f} μg/m³", "inline": True},
+        {
+            "name": "🌡️ Temp", 
+            "value": f"{daily['temperature_2m_min']}°C – {daily['temperature_2m_max']}°C", 
+            "inline": True
+         },
+
+        {
+            "name": "🌧️ Rain", 
+            "value": f"{daily['precipitation_probability_max']}% ({daily['precipitation_sum']}mm)", 
+            "inline": True
+        },
+
+        {
+            "name": "☀️ UV Max", 
+            "value": str(daily["uv_index_max"]), 
+            "inline": True
+        },
+
+        {
+            "name": "💨 Wind Max", 
+            "value": f"{daily['wind_speed_10m_max']} km/h", 
+            "inline": True
+        },
+
+        {
+            "name": "🧪 Air Quality", 
+            "value": f"{aqi_emoji} **{aqi_status}**\nAQI: {aqi_val}\nCO: {co_val:.0f} μg/m³", 
+            "inline": True
+        }
     ]
 
     if timing_lines:
