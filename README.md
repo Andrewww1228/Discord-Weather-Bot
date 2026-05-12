@@ -35,6 +35,7 @@ This bot is designed to run via **GitHub Actions**. Follow these steps to set it
 
 ---
 
+<div align="center">
 ## 📊 Thresholds & Standards | 阈值与标准
 
 | Parameter | Threshold | Action | Note |
@@ -45,6 +46,7 @@ This bot is designed to run via **GitHub Actions**. Follow these steps to set it
 | **CO (WHO)** | 4400 µg/m³ | Health Alert | Based on WHO 24h Guidelines |
 
 ---
+</div>
 
 ## 📚 References | 参考资料
 
