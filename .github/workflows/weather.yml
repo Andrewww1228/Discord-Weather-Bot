@@ -2,7 +2,7 @@ name: Daily Weather Notifier
 
 on:
   schedule:
-    - cron: '0 11 * * *'   
+    - cron: '18 19 * * *'   
   workflow_dispatch:         # lets you trigger it manually with a button
 
 jobs:
