@@ -76,7 +76,7 @@ def format_time_str(iso_str):
 def analyze_rain_windows(hourly_w):
     windows = []
     current = None
-    for i in range(24, 48):
+    for i in range(0, 24):
         prob = hourly_w["precipitation_probability"][i]
         precip = hourly_w["precipitation"][i]
         time_val = hourly_w["time"][i]
@@ -96,7 +96,7 @@ def analyze_rain_windows(hourly_w):
     return windows
 
 def build_discord_payload(w_data, a_data, final_loc):
-    daily = {k: v[1] for k, v in w_data["daily"].items()}
+    daily = {k: v[0] for k, v in w_data["daily"].items()}
     hourly_w = w_data["hourly"]
     hourly_a = a_data["hourly"]
     date_str = datetime.fromisoformat(daily["time"]).strftime("%A, %d %b %Y")
@@ -139,8 +139,8 @@ def build_discord_payload(w_data, a_data, final_loc):
 
 
     # ── AQI & CO (Mapping the labels) ──
-    aqi_val = hourly_a["us_aqi"][36] 
-    co_val = hourly_a["carbon_monoxide"][36]
+    aqi_val = hourly_a["us_aqi"][12] 
+    co_val = hourly_a["carbon_monoxide"][12]
     
     # Use the mapping function to get the status and emoji
     aqi_status, aqi_emoji = get_aqi_info(aqi_val)
@@ -153,7 +153,7 @@ def build_discord_payload(w_data, a_data, final_loc):
 
     # ── Hourly Chart ──
     chart = []
-    for i in range(34, 47): 
+    for i in range(10, 23): 
         p = hourly_w["precipitation_probability"][i]
         if p >= 25:
             bar = "█" * (p // 10) + "░" * (10 - (p // 10))
@@ -199,7 +199,7 @@ def build_discord_payload(w_data, a_data, final_loc):
     return {
         "username": "Weather-Chan 🌤️",
         "embeds": [{
-            "title": f"Tomorrow's Forecast — {final_loc}",
+            "title": f"Today's Forecast — {final_loc}",
             "description": "\n".join(tips) if tips else "✅ Looks like a great day!",
             "color": color,
             "fields": fields,
