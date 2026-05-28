@@ -2,13 +2,13 @@ name: Daily Weather Notifier
 
 on:
   schedule:
-    - cron: '0 13 * * *'   # 9:00 PM Malaysia time every day
+    - cron: '0 16 * * *'   
   workflow_dispatch:         # lets you trigger it manually with a button
 
 jobs:
   send-weather:
     runs-on: ubuntu-latest
-
+  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
