@@ -27,3 +27,6 @@ jobs:
           WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           LOCATION: ${{ secrets.LOCATION }}
+
+      - name: Keepalive Workflow
+        uses: gautamkrishnar/keepalive-workflow@v2
